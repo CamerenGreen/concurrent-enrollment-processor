@@ -187,3 +187,72 @@ fn task_result(task: EnrollmentTask, result: Result<String, String>) -> TaskResu
     }
 }
 
+// Supplies 38 requests covering all actions, multiple students and courses,
+// full capacity, satisfied prerequisites, and missing prerequisites.
+fn create_sample_tasks() -> Vec<EnrollmentTask> {
+    let mut tasks = Vec::new();
+    // EECS303 starts empty. 31 registrations for 30 seats guarantee failures
+    // in either channel pattern without changing the initial course counts.
+    for i in 1..=31 {
+        tasks.push(EnrollmentTask {
+            id: format!("register-303-{}", i),
+            action: EnrollmentAction::Register,
+            student_id: format!("S{:03}", i),
+            course_id: Course::EECS303,
+            prereqs_taken: vec![Course::EECS201],
+        });
+    }
+    tasks.extend(vec![
+        EnrollmentTask {
+            id: "drop-empty".to_string(),
+            action: EnrollmentAction::Drop,
+            student_id: "S032".to_string(),
+            course_id: Course::EECS101,
+            prereqs_taken: vec![],
+        },
+        EnrollmentTask {
+            id: "register-102".to_string(),
+            action: EnrollmentAction::Register,
+            student_id: "S033".to_string(),
+            course_id: Course::EECS102,
+            prereqs_taken: vec![Course::EECS101],
+        },
+        EnrollmentTask {
+            id: "prereqs-met".to_string(),
+            action: EnrollmentAction::PrerequisiteCheck,
+            student_id: "S034".to_string(),
+            course_id: Course::EECS201,
+            prereqs_taken: vec![Course::EECS101, Course::EECS102],
+        },
+        EnrollmentTask {
+            id: "prereqs-missing".to_string(),
+            action: EnrollmentAction::PrerequisiteCheck,
+            student_id: "S035".to_string(),
+            course_id: Course::EECS201,
+            prereqs_taken: vec![Course::EECS101],
+        },
+        EnrollmentTask {
+            id: "can-enroll".to_string(),
+            action: EnrollmentAction::CanEnroll,
+            student_id: "S036".to_string(),
+            course_id: Course::EECS301,
+            prereqs_taken: vec![Course::EECS201],
+        },
+        EnrollmentTask {
+            id: "cannot-enroll".to_string(),
+            action: EnrollmentAction::CanEnroll,
+            student_id: "S037".to_string(),
+            course_id: Course::EECS301,
+            prereqs_taken: vec![],
+        },
+        EnrollmentTask {
+            id: "status-303".to_string(),
+            action: EnrollmentAction::EnrollmentStatus,
+            student_id: "S038".to_string(),
+            course_id: Course::EECS303,
+            prereqs_taken: vec![],
+        },
+    ]);
+    tasks
+}
+
