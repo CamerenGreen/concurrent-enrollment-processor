@@ -90,3 +90,72 @@ fn check_prerequisites(task: &EnrollmentTask) -> Result<String, String> {
     ))
 }
 
+// Performs one operation. Checking capacity and changing the count happen
+// under the same lock, so two workers cannot claim the same last seat.
+async fn process_enrollment_task(
+    task: &EnrollmentTask,
+    enrollment_counts: EnrollmentCounts,
+) -> Result<String, String> {
+    match task.action {
+        EnrollmentAction::Register => {
+            let mut counts = enrollment_counts
+                .lock()
+                .map_err(|_| "Enrollment count lock was poisoned".to_string())?;
+            let count = counts.entry(task.course_id.clone()).or_insert(0);
+            if *count >= task.course_id.max_seats() {
+                return Err(format!("{:?} is full", task.course_id));
+            }
+            *count += 1;
+            Ok(format!(
+                "Student {} registered for {:?}",
+                task.student_id, task.course_id
+            ))
+        }
+        EnrollmentAction::Drop => {
+            let mut counts = enrollment_counts
+                .lock()
+                .map_err(|_| "Enrollment count lock was poisoned".to_string())?;
+            let count = counts.entry(task.course_id.clone()).or_insert(0);
+            if *count > 0 {
+                *count -= 1;
+            }
+            Ok(format!(
+                "Student {} dropped {:?}",
+                task.student_id, task.course_id
+            ))
+        }
+        EnrollmentAction::PrerequisiteCheck => check_prerequisites(task),
+        EnrollmentAction::EnrollmentStatus => {
+            let count = {
+                let counts = enrollment_counts
+                    .lock()
+                    .map_err(|_| "Enrollment count lock was poisoned".to_string())?;
+                counts.get(&task.course_id).copied().unwrap_or(0)
+            };
+            Ok(format!(
+                "{:?}: {}/{} seats filled",
+                task.course_id,
+                count,
+                task.course_id.max_seats()
+            ))
+        }
+        EnrollmentAction::CanEnroll => {
+            let count = {
+                let counts = enrollment_counts
+                    .lock()
+                    .map_err(|_| "Enrollment count lock was poisoned".to_string())?;
+                counts.get(&task.course_id).copied().unwrap_or(0)
+            };
+            if count >= task.course_id.max_seats() {
+                return Err(format!("{:?} is full", task.course_id));
+            }
+            check_prerequisites(task)?;
+            // This is a check only; Register is responsible for claiming a seat.
+            Ok(format!(
+                "Student {} can enroll in {:?}",
+                task.student_id, task.course_id
+            ))
+        }
+    }
+}
+
