@@ -85,19 +85,6 @@ continues. The sample workload fits inside that buffer.
 Broadcast is the default. Enabling `work-queue` selects the work queue, including
 when both features are enabled. Disabling all features falls back to broadcast.
 
-## References used
-
-The language references were limited to these course notes and the Exam 1 review:
-
-- [September 3: Rust basics](https://publish.obsidian.md/fa26-468/lectures/fa26/class+notes/published/Sep+3+-+Rust+-+Basics)
-- [September 8: Ownership](https://publish.obsidian.md/fa26-468/lectures/fa26/class+notes/published/Sep+8+-+Rust+-+Ownership)
-- [September 10: Borrowing](https://publish.obsidian.md/fa26-468/lectures/fa26/class+notes/published/Sep+10+-+Rust+-+Borrowing)
-- [September 15: Lifetimes and type system](https://publish.obsidian.md/fa26-468/lectures/fa26/class+notes/published/Sep+15+-+Rust+-+Lifetimes+%26+Type+System)
-- [September 17: Type system and error handling](https://publish.obsidian.md/fa26-468/lectures/fa26/class+notes/published/Sep+17+-+Rust+-+Type+System+Cont.+%26+Error+Handling)
-- [September 22: Error handling and concurrency](https://publish.obsidian.md/fa26-468/lectures/fa26/class+notes/published/Sep+22+-+Rust+-+Error+Handling+Cont.+%26+Concurrency)
-- [September 24: Channels and async/await](https://publish.obsidian.md/fa26-468/lectures/fa26/class+notes/published/Sep+24+-+Rust+-+Channels+Cont.+%2B+Async+%26+Await)
-- [September 29: Exam 1 review](https://publish.obsidian.md/fa26-468/lectures/fa26/class+notes/published/Sep+29+-+Exam+1+Review)
-
 The supplied assignment description, template, tests, and grading rubric define
 the project requirements. No other Rust tutorials or reference documentation
 were used.
