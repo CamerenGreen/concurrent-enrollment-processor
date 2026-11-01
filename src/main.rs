@@ -256,3 +256,53 @@ fn create_sample_tasks() -> Vec<EnrollmentTask> {
     tasks
 }
 
+// Broadcast delivers a copy of each request to every subscribed worker.
+// Work-queue takes precedence if both features are enabled; no features uses
+// broadcast too, keeping cargo's feature combinations usable.
+#[cfg(not(feature = "work-queue"))]
+struct EnrollmentProcessor {
+    tx: broadcast::Sender<EnrollmentTask>,
+}
+
+#[cfg(not(feature = "work-queue"))]
+impl EnrollmentProcessor {
+    // Creates the channels, shared counts, and one subscription per worker.
+    fn new(num_workers: usize) -> (Self, mpsc::UnboundedReceiver<TaskResult>) {
+        let (tx, _rx) = broadcast::channel::<EnrollmentTask>(100);
+        let (result_tx, result_rx) = mpsc::unbounded_channel::<TaskResult>();
+        let enrollment_counts = initial_enrollment_counts();
+        for _ in 0..num_workers {
+            let mut task_rx = tx.subscribe();
+            let result_tx = result_tx.clone();
+            let enrollment_counts = enrollment_counts.clone();
+            tokio::spawn(async move {
+                loop {
+                    match task_rx.recv().await {
+                        Ok(task) => {
+                            let result =
+                                process_enrollment_task(&task, enrollment_counts.clone()).await;
+                            if result_tx.send(task_result(task, result)).is_err() {
+                                break; // The results listener has closed.
+                            }
+                        }
+                        Err(broadcast::error::RecvError::Closed) => break,
+                        Err(broadcast::error::RecvError::Lagged(skipped)) => {
+                            // Broadcast has a bounded buffer, so report lost requests.
+                            eprintln!("Broadcast worker lagged; skipped {} tasks", skipped);
+                        }
+                    }
+                }
+            });
+        }
+        (EnrollmentProcessor { tx }, result_rx)
+    }
+
+    // Sends to every active subscriber, reporting a closed channel as an error.
+    fn submit_task(&self, task: EnrollmentTask) -> Result<(), String> {
+        self.tx
+            .send(task)
+            .map(|_| ())
+            .map_err(|e| format!("Failed to submit task: {}", e))
+    }
+}
+
