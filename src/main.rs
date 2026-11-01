@@ -306,3 +306,45 @@ impl EnrollmentProcessor {
     }
 }
 
+// Cloned crossbeam receivers compete for requests; each request is received once.
+#[cfg(feature = "work-queue")]
+struct EnrollmentProcessor {
+    tx: Sender<EnrollmentTask>,
+}
+
+#[cfg(feature = "work-queue")]
+impl EnrollmentProcessor {
+    // Creates a shared queue and workers with access to the existing runtime.
+    fn new(num_workers: usize) -> (Self, mpsc::UnboundedReceiver<TaskResult>) {
+        let (tx, task_rx) = unbounded::<EnrollmentTask>();
+        let (result_tx, result_rx) = mpsc::unbounded_channel::<TaskResult>();
+        let enrollment_counts = initial_enrollment_counts();
+        let runtime = tokio::runtime::Handle::current();
+        for _ in 0..num_workers {
+            let task_rx = task_rx.clone();
+            let result_tx = result_tx.clone();
+            let enrollment_counts = enrollment_counts.clone();
+            let runtime = runtime.clone();
+            // Crossbeam recv blocks, so give it an OS thread instead of blocking
+            // Tokio's async workers. block_on runs our supplied async function.
+            std::thread::spawn(move || {
+                while let Ok(task) = task_rx.recv() {
+                    let result =
+                        runtime.block_on(process_enrollment_task(&task, enrollment_counts.clone()));
+                    if result_tx.send(task_result(task, result)).is_err() {
+                        break;
+                    }
+                }
+            });
+        }
+        (EnrollmentProcessor { tx }, result_rx)
+    }
+
+    // Moves one request into the queue; a disconnected queue returns an error.
+    fn submit_task(&self, task: EnrollmentTask) -> Result<(), String> {
+        self.tx
+            .send(task)
+            .map_err(|e| format!("Failed to submit task: {}", e))
+    }
+}
+
