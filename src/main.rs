@@ -74,3 +74,19 @@ enum EnrollmentAction {
     CanEnroll,
 }
 
+// Checks every prerequisite without needing the shared enrollment lock.
+fn check_prerequisites(task: &EnrollmentTask) -> Result<String, String> {
+    for course in task.course_id.prerequisites() {
+        if !task.prereqs_taken.contains(&course) {
+            return Err(format!(
+                "Student {} is missing {:?}, required for {:?}",
+                task.student_id, course, task.course_id
+            ));
+        }
+    }
+    Ok(format!(
+        "Student {} meets all prerequisites for {:?}",
+        task.student_id, task.course_id
+    ))
+}
+
