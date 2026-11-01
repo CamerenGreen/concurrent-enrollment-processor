@@ -348,3 +348,39 @@ impl EnrollmentProcessor {
     }
 }
 
+//================ MAIN FUNCTION - DO NOT MODIFY=========================
+// The main function to run the program. 
+// You should not modify this function, but you can add additional functions if needed.
+#[tokio::main]
+async fn main() {
+
+    // Create a task processor
+    let (processor, mut result_rx) = EnrollmentProcessor::new(4);
+
+    //Spawn a task to listen for results
+    tokio::spawn(async move {
+        while let Some(result) = result_rx.recv().await {
+            println!(
+                "Task {}: {} {}",
+                result.task_id,
+                result.result_message,
+                if result.success { "✓" } else { "✗" }
+            )
+        }
+    });
+
+    //Create sample tasks
+    let tasks = create_sample_tasks();
+    for task in tasks {
+        processor.submit_task(task).ok();
+    }
+
+    //Keep the program running to allow async tasks to complete
+    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+}
+
+#[cfg(test)]
+include!("provided_tests.rs");
+
+#[cfg(test)]
+mod additional_tests;
