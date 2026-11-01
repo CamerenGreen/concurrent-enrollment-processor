@@ -54,3 +54,23 @@ impl Course {
     }
 }
 
+// One student's requested operation and their completed courses.
+#[derive(Clone, Debug)]
+struct EnrollmentTask {
+    id: String,
+    action: EnrollmentAction,
+    student_id: String,
+    course_id: Course,
+    prereqs_taken: Vec<Course>,
+}
+
+// The five enrollment operations required by the assignment.
+#[derive(Clone, Debug)]
+enum EnrollmentAction {
+    Register,
+    Drop,
+    PrerequisiteCheck,
+    EnrollmentStatus,
+    CanEnroll,
+}
+
