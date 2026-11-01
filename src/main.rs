@@ -159,3 +159,31 @@ async fn process_enrollment_task(
     }
 }
 
+// Starts every course at zero, as in the supplied template.
+fn initial_enrollment_counts() -> EnrollmentCounts {
+    let counts = [
+        Course::EECS101,
+        Course::EECS102,
+        Course::EECS201,
+        Course::EECS301,
+        Course::EECS303,
+    ]
+    .into_iter()
+    .map(|course| (course, 0))
+    .collect();
+    Arc::new(Mutex::new(counts))
+}
+
+// Converts an operation's Result into the message expected by main().
+fn task_result(task: EnrollmentTask, result: Result<String, String>) -> TaskResult {
+    let (success, result_message) = match result {
+        Ok(message) => (true, message),
+        Err(message) => (false, message),
+    };
+    TaskResult {
+        task_id: task.id,
+        success,
+        result_message,
+    }
+}
+
